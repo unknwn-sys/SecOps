@@ -16,14 +16,28 @@ from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from functools import wraps
 
-# RFID Library (MFRC522) - Disabled for now
-try:
-    from mfrc522 import SimpleMFRC522
-    import RPi.GPIO as GPIO
-    rfid_reader = SimpleMFRC522()
-except ImportError:
-    rfid_reader = None
-    print("⚠️ MFRC522 or RPi.GPIO not found. RFID functions disabled.")
+# RFID Library (MFRC522) - Disabled by default
+rfid_reader = None
+def init_rfid():
+    global rfid_reader
+    try:
+        with open(CONFIG_FILE, 'r') as f:
+            config = json.load(f)
+        if not config.get('modules', {}).get('rfid', False):
+            print("⚠️ RFID module disabled in config.")
+            return
+        
+        import RPi.GPIO as GPIO
+        GPIO.setwarnings(False)  # Suppress GPIO warnings
+        from mfrc522 import SimpleMFRC522
+        rfid_reader = SimpleMFRC522()
+        print("✅ RFID module initialized successfully.")
+    except ImportError:
+        rfid_reader = None
+        print("⚠️ MFRC522 or RPi.GPIO not found. RFID functions disabled.")
+    except Exception as e:
+        rfid_reader = None
+        print(f"⚠️ RFID initialization error: {e}")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secops_secret_key_2024'
@@ -40,6 +54,20 @@ CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 
 # Hardware connections
 esp32_serial = None
+
+def detect_esp32_port():
+    """Auto-detect ESP32 serial port"""
+    import glob
+    possible_ports = glob.glob('/dev/ttyUSB*') + glob.glob('/dev/ttyACM*') + ['/dev/ttyS0', '/dev/ttyAMA0']
+    
+    for port in possible_ports:
+        try:
+            test_serial = serial.Serial(port, 115200, timeout=1)
+            test_serial.close()
+            return port
+        except:
+            continue
+    return None
 
 # Login required decorator
 def login_required(f):
@@ -96,14 +124,31 @@ def init_serial_connections():
     try:
         with open(CONFIG_FILE, 'r') as f:
             config = json.load(f)
+        
+        # Try to connect to configured port first
+        port = config['esp32'].get('port')
+        
+        # If port doesn't exist, auto-detect
+        if not port or not os.path.exists(port):
+            print(f"⚠️ Configured port {port} not found. Auto-detecting ESP32...")
+            port = detect_esp32_port()
+            if not port:
+                log_action('ESP32 Connection', 'Failed', 'No available serial ports detected')
+                esp32_serial = None
+                print("❌ No ESP32 found on any serial port")
+                return
+            print(f"✅ Auto-detected ESP32 on {port}")
+        
         esp32_serial = serial.Serial(
-            config['esp32']['port'], 
-            config['esp32']['baudrate'], 
+            port, 
+            config['esp32'].get('baudrate', 115200), 
             timeout=2
         )
-        log_action('ESP32 Connection', 'Success', f"Connected to {config['esp32']['port']}")
+        log_action('ESP32 Connection', 'Success', f"Connected to {port}")
+        print(f"✅ ESP32 connected on {port}")
     except Exception as e:
         log_action('ESP32 Connection', 'Failed', str(e))
+        print(f"❌ ESP32 Connection Failed: {e}")
         esp32_serial = None
 
 # Routes
@@ -170,30 +215,51 @@ def system_status():
 @login_required
 def wifi_scan():
     if not esp32_serial:
-        return jsonify({'error': 'ESP32 not connected'}), 500
+        return jsonify({'error': 'ESP32 not connected. Please check USB connection and restart the server.'}), 500
     
     try:
+        print("📡 Sending SCAN command to ESP32...")
         esp32_serial.write(b'SCAN\n')
+        esp32_serial.flush()
+        
         networks = []
         start_time = time.time()
-        while time.time() - start_time < 10: # 10s timeout
+        timeout = 15  # 15 second timeout
+        
+        while time.time() - start_time < timeout:
             if esp32_serial.in_waiting:
-                line = esp32_serial.readline().decode().strip()
-                if line == "SCAN_COMPLETE":
-                    break
-                if line.startswith('NETWORK:'):
-                    parts = line.split(',')
-                    if len(parts) >= 6:
-                        networks.append({
-                            'ssid': parts[1],
-                            'bssid': parts[2],
-                            'channel': int(parts[3]),
-                            'rssi': int(parts[4]),
-                            'encryption': parts[5]
-                        })
+                try:
+                    line = esp32_serial.readline().decode().strip()
+                    print(f"📡 Received: {line}")
+                    
+                    if line == "SCAN_COMPLETE":
+                        print(f"✅ Scan complete. Found {len(networks)} networks")
+                        break
+                    if line.startswith('NETWORK:'):
+                        parts = line.split(',')
+                        if len(parts) >= 6:
+                            network = {
+                                'ssid': parts[1],
+                                'bssid': parts[2],
+                                'channel': int(parts[3]),
+                                'rssi': int(parts[4]),
+                                'encryption': parts[5]
+                            }
+                            networks.append(network)
+                            print(f"✅ Found network: {network['ssid']}")
+                except Exception as parse_err:
+                    print(f"⚠️ Parse error: {parse_err}")
+                    continue
+            else:
+                time.sleep(0.1)  # Small delay to avoid busy-waiting
+        
+        if not networks and time.time() - start_time >= timeout:
+            print(f"⚠️ Scan timeout after {timeout}s")
+        
         log_action('WiFi Scan', 'Success', f'Found {len(networks)} networks')
         return jsonify({'networks': networks})
     except Exception as e:
+        print(f"❌ WiFi Scan Error: {e}")
         log_action('WiFi Scan', 'Failed', str(e))
         return jsonify({'error': str(e)}), 500
 
@@ -312,6 +378,26 @@ def handle_connect():
     emit('connected', {'data': 'Connected to SECOPS backend'})
 
 if __name__ == '__main__':
+    print("\n" + "="*60)
+    print("🔥 SECOPS Portal - Starting...")
+    print("="*60)
+    
     init_data_files()
+    print("✅ Data files initialized")
+    
+    init_rfid()
+    print("✅ RFID module checked")
+    
     init_serial_connections()
+    if esp32_serial:
+        print("✅ ESP32 connected and ready!")
+    else:
+        print("⚠️ ESP32 not connected - WiFi features unavailable")
+    
+    print("\n" + "="*60)
+    print("🚀 SECOPS Portal running!")
+    print("📍 URL: http://0.0.0.0:5000")
+    print("🔐 Default credentials: rynex / rynex")
+    print("="*60 + "\n")
+    
     socketio.run(app, host='0.0.0.0', port=5000, debug=False)

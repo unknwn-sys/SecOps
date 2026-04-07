@@ -168,6 +168,67 @@ Edit `data/config.json` to modify settings:
 }
 ```
 
+## Troubleshooting
+
+### ESP32 Not Detected
+
+If you see "ESP32 not connected" when scanning, use the test script:
+
+```bash
+python3 test_esp32.py
+```
+
+This will:
+1. Scan all serial ports
+2. Attempt to connect to ESP32
+3. Test WiFi scan functionality
+4. Provide port detection feedback
+
+**Manual port check:**
+```bash
+# List serial ports
+ls /dev/tty*
+
+# Monitor ESP32 output
+screen /dev/ttyUSB0 115200
+# (Press Ctrl+A then D to exit)
+```
+
+### Permission Issues
+
+If you get "Permission denied" errors:
+
+```bash
+# Add user to dialout group
+sudo usermod -a -G dialout $(whoami)
+
+# Apply group changes (logout and log back in)
+newgrp dialout
+```
+
+### ESP32 Firmware Issues
+
+1. **Firmware won't upload:**
+   - Check USB cable
+   - Try different USB port
+   - Manually reset ESP32
+
+2. **Scan returns no networks:**
+   - Check ESP32 antenna connection
+   - Verify firmware uploaded correctly
+   - Reset ESP32: `python3 test_esp32.py`
+
+3. **Serial port conflict:**
+   - Another program using the port
+   - Check: `lsof /dev/ttyUSB0`
+   - Kill conflicting process
+
+### Common Ports
+
+On Raspberry Pi:
+- **USB connected ESP32:** `/dev/ttyUSB0` or `/dev/ttyUSB1`
+- **GPIO serial:** `/dev/ttyS0` or `/dev/ttyAMA0`
+
 ## Security Note
 
 This tool is for educational and authorized security testing purposes only. Unauthorized use may violate laws and regulations.
