@@ -1,0 +1,48 @@
+{
+  "id": "f5cf51c8-8e07-44f7-ac3b-16515171071d",
+  "name": "Linux Shell Command - Copy",
+  "type": "hid",
+  "description": "Opens shell and executes command on Linux",
+  "content": {
+    "sequence": [
+      {
+        "action": "key",
+        "key": "ALT_F2",
+        "delay": 100
+      },
+      {
+        "action": "type",
+        "text": "xterm",
+        "delay": 100
+      },
+      {
+        "action": "key",
+        "key": "RETURN",
+        "delay": 500
+      },
+      {
+        "action": "type",
+        "text": "id",
+        "delay": 100
+      },
+      {
+        "action": "key",
+        "key": "RETURN",
+        "delay": 100
+      }
+    ]
+  },
+  "tags": [
+    "from-template"
+  ],
+  "encrypted": false,
+  "metadata": {
+    "requires": [
+      "Linux OS"
+    ],
+    "riskLevel": 3,
+    "estimatedTime": "5 seconds"
+  },
+  "createdAt": "2026-04-06T14:57:09.923Z",
+  "updatedAt": "2026-04-06T14:57:09.923Z"
+}

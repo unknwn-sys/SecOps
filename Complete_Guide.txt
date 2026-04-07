@@ -1,0 +1,352 @@
+# Complete Guide: Deploying and Testing IoT Cybersecurity Lab Device
+
+## Part 1: Setting Up Raspberry Pi Zero 2 W
+
+### 1. Flash Raspberry Pi OS
+- **Download Raspberry Pi OS Lite**:
+  - [Download Raspberry Pi OS Lite](https://www.raspberrypi.com/software/operating-systems/).
+- **Flash the OS onto a microSD card**:
+  - Use **Raspberry Pi Imager** or **balenaEtcher**.
+- **Enable SSH**:
+  - Create an empty file named `ssh` in the `/boot` directory of the SD card.
+
+### 2. Boot and Connect
+- Insert the microSD card into the Raspberry Pi Zero 2 W and power it on.
+- Connect to the Raspberry Pi via SSH:
+  ```bash
+  ssh pi@<raspberry-pi-ip>
+  ```
+
+### 3. Run the Setup Script
+- Clone your project repository:
+  ```bash
+  git clone <your-repo-url>
+  cd offensive-security-portal
+  ```
+- Make the setup script executable and run it:
+  ```bash
+  chmod +x setup.sh
+  ./setup.sh
+  ```
+
+---
+
+## Part 2: Setting Up ESP32-S3
+
+### 1. Install ESP32 Development Tools
+- **Install Arduino IDE**:
+  - [Download Arduino IDE](https://www.arduino.cc/en/software).
+- **Install ESP32 Board Support**:
+  - Open Arduino IDE.
+  - Go to **File > Preferences**.
+  - Add the following URL to the **Additional Board Manager URLs**:
+    ```
+    https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+    ```
+  - Go to **Tools > Board > Board Manager**, search for `ESP32`, and install it.
+
+### 2. Connect ESP32-S3 to Your Computer
+- Use a USB cable to connect the ESP32-S3 to your computer.
+- Select the correct port in Arduino IDE:
+  - Go to **Tools > Port** and select the ESP32-S3 port.
+
+### 3. Write the ESP32 Firmware
+- Open Arduino IDE and create a new sketch.
+- Copy the following code into the sketch:
+
+```cpp
+#include <Arduino.h>
+#include <ArduinoJson.h>
+#include <SPI.h>
+#include <MFRC522.h>
+
+// UART Configuration
+#define RXD2 16
+#define TXD2 17
+
+// RC522 Configuration
+#define RST_PIN 22
+#define SS_PIN 21
+
+MFRC522 rfid(SS_PIN, RST_PIN);
+
+void setup() {
+  Serial.begin(115200); // USB Serial
+  Serial2.begin(115200, SERIAL_8N1, RXD2, TXD2); // UART Serial
+
+  SPI.begin(); // Initialize SPI bus
+  rfid.PCD_Init(); // Initialize RC522
+
+  Serial.println("ESP32-S3 Ready");
+}
+
+void loop() {
+  if (Serial2.available()) {
+    String command = Serial2.readStringUntil('\n');
+    handleCommand(command);
+  }
+}
+
+void handleCommand(String command) {
+  StaticJsonDocument<256> doc;
+  DeserializationError error = deserializeJson(doc, command);
+
+  if (error) {
+    Serial.println("Invalid JSON received");
+    return;
+  }
+
+  const char* cmd = doc["cmd"];
+
+  if (strcmp(cmd, "rfid_read") == 0) {
+    readRFID();
+  } else if (strcmp(cmd, "hid") == 0) {
+    const char* payload = doc["payload"];
+    sendHIDPayload(payload);
+  }
+}
+
+void readRFID() {
+  if (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
+    Serial2.println("{\"error\":\"No card detected\"}");
+    return;
+  }
+
+  String uid = "";
+  for (byte i = 0; i < rfid.uid.size; i++) {
+    uid += String(rfid.uid.uidByte[i], HEX);
+  }
+
+  StaticJsonDocument<128> response;
+  response["uid"] = uid;
+  String responseString;
+  serializeJson(response, responseString);
+  Serial2.println(responseString);
+
+  rfid.PICC_HaltA();
+}
+
+void sendHIDPayload(const char* payload) {
+  // Simulate HID payload (e.g., open Notepad)
+  if (strcmp(payload, "notepad") == 0) {
+    Serial.println("Opening Notepad...");
+    // Add HID keyboard simulation code here
+  }
+
+  StaticJsonDocument<128> response;
+  response["status"] = "success";
+  String responseString;
+  serializeJson(response, responseString);
+  Serial2.println(responseString);
+}
+```
+
+- Save the sketch and upload it to the ESP32-S3:
+  - Go to **Sketch > Upload** or press `Ctrl+U`.
+
+---
+
+## Part 3: Wiring the Hardware
+
+### 1. ESP32 ↔ Raspberry Pi UART
+| ESP32 Pin | Raspberry Pi Pin |
+|-----------|------------------|
+| TX        | GPIO15 (RXD)     |
+| RX        | GPIO14 (TXD)     |
+| GND       | GND              |
+| 3.3V      | 3.3V             |
+
+### 2. RC522 ↔ ESP32 SPI
+| RC522 Pin | ESP32 Pin |
+|-----------|-----------|
+| SDA       | GPIO21    |
+| SCK       | GPIO18    |
+| MOSI      | GPIO23    |
+| MISO      | GPIO19    |
+| IRQ       | Not Used  |
+| GND       | GND       |
+| RST       | GPIO22    |
+| 3.3V      | 3.3V      |
+
+---
+
+## Part 4: Communication Between Raspberry Pi and ESP32
+
+### 1. Test Serial Communication
+- On the Raspberry Pi, open a terminal and test UART communication:
+  ```bash
+  sudo apt install minicom
+  minicom -b 115200 -o -D /dev/serial0
+  ```
+- Type a test command (e.g., `{"cmd":"rfid_read"}`) and verify the ESP32 responds.
+
+### 2. Backend Integration
+- The `server/hardware/serial.ts` file handles communication with the ESP32:
+
+```typescript
+import { SerialPort } from 'serialport';
+import { EventEmitter } from 'events';
+
+class SerialCommunication extends EventEmitter {
+  private port: SerialPort;
+
+  constructor() {
+    super();
+    this.port = new SerialPort({
+      path: '/dev/serial0',
+      baudRate: 115200,
+    });
+
+    this.port.on('data', (data) => {
+      try {
+        const json = JSON.parse(data.toString());
+        this.emit('response', json);
+      } catch (error) {
+        console.error('Invalid JSON received:', data.toString());
+      }
+    });
+
+    this.port.on('error', (err) => {
+      console.error('Serial port error:', err);
+    });
+  }
+
+  sendCommand(cmd: string): void {
+    this.port.write(cmd + '\n', (err) => {
+      if (err) {
+        console.error('Error writing to serial port:', err);
+      }
+    });
+  }
+}
+
+const serial = new SerialCommunication();
+export default serial;
+```
+
+- Use the backend API routes to send commands to the ESP32:
+  - **RFID**: `{"cmd":"rfid_read"}`
+  - **HID**: `{"cmd":"hid","payload":"notepad"}`
+
+---
+
+## Part 5: Testing the System
+
+### 1. Start the Backend
+- Ensure the backend service is running:
+  ```bash
+  sudo systemctl start offensive-security.service
+  ```
+
+### 2. Access the Dashboard
+- Open a browser and navigate to `http://<raspberry-pi-ip>:3000`.
+
+### 3. Test Modules
+- **RFID**:
+  - Place a card on the RC522 reader.
+  - Use the dashboard to read and write data.
+- **HID**:
+  - Trigger a payload (e.g., open Notepad) via the dashboard.
+
+---
+
+## Part 6: Deploying SecOps to Raspberry Pi Zero 2 W
+
+### 1. Prepare the Raspberry Pi
+- **Flash Raspberry Pi OS Lite**:
+  - Download the image from the official Raspberry Pi website.
+  - Use `balenaEtcher` to flash the image to an SD card.
+- **Enable SSH**:
+  - Create an empty file named `ssh` in the `/boot` directory of the SD card.
+- **Connect to WiFi**:
+  - Create a file named `wpa_supplicant.conf` in the `/boot` directory with the following content:
+    ```
+    country=US
+    ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+    update_config=1
+    network={
+        ssid="<Your_SSID>"
+        psk="<Your_Password>"
+    }
+    ```
+
+### 2. Transfer Files to the Raspberry Pi
+- **Option 1: Using SCP**:
+  - From your computer, run:
+    ```bash
+    scp -r /path/to/SecOps pi@<raspberry-pi-ip>:/home/pi/
+    ```
+- **Option 2: Using Git**:
+  - Clone the repository directly on the Raspberry Pi:
+    ```bash
+    git clone <repository-url>
+    ```
+
+### 3. Run the Setup Script
+- SSH into the Raspberry Pi:
+  ```bash
+  ssh pi@<raspberry-pi-ip>
+  ```
+- Navigate to the project directory:
+  ```bash
+  cd SecOps
+  ```
+- Make the setup script executable and run it:
+  ```bash
+  chmod +x setup.sh
+  ./setup.sh
+  ```
+
+### 4. Flash the ESP32 Firmware
+- **Install Arduino IDE**:
+  - Download and install the Arduino IDE from the [official website](https://www.arduino.cc/en/software).
+- **Install ESP32 Board Support**:
+  - Open Arduino IDE.
+  - Go to **File > Preferences**.
+  - Add the following URL to the **Additional Board Manager URLs**:
+    ```
+    https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+    ```
+  - Go to **Tools > Board > Board Manager**, search for `ESP32`, and install it.
+- **Flash the Firmware**:
+  - Open `main.ino` in the Arduino IDE.
+  - Select the ESP32-S3 board and the correct port.
+  - Click **Upload** to flash the firmware.
+
+### 5. Wiring the Hardware
+- **ESP32 ↔ Raspberry Pi UART**:
+  | ESP32 Pin | Raspberry Pi Pin |
+  |-----------|------------------|
+  | TX        | GPIO15 (RXD)     |
+  | RX        | GPIO14 (TXD)     |
+  | GND       | GND              |
+  | 3.3V      | 3.3V             |
+- **RC522 ↔ ESP32 SPI**:
+  | RC522 Pin | ESP32 Pin |
+  |-----------|-----------|
+  | SDA       | GPIO21    |
+  | SCK       | GPIO18    |
+  | MOSI      | GPIO23    |
+  | MISO      | GPIO19    |
+  | IRQ       | Not Used  |
+  | GND       | GND       |
+  | RST       | GPIO22    |
+  | 3.3V      | 3.3V      |
+
+### 6. Testing the System
+- **Start the Backend**:
+  - Ensure the backend service is running:
+    ```bash
+    sudo systemctl start offensive-security.service
+    ```
+- **Access the Dashboard**:
+  - Open a browser and navigate to `http://<raspberry-pi-ip>:3000`.
+- **Test Modules**:
+  - **RFID**:
+    - Place a card on the RC522 reader.
+    - Use the dashboard to read and write data.
+  - **HID**:
+    - Trigger a payload (e.g., open Notepad) via the dashboard.
+
+### 7. Ethical Disclaimer
+This project is for educational and ethical purposes only. Unauthorized use is strictly prohibited.

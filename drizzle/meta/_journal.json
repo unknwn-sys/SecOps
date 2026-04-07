@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1775138007907,
+      "tag": "0000_easy_odin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1775138197740,
+      "tag": "0001_smart_moira_mactaggert",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1775456584009,
+      "tag": "0002_adorable_inertia",
+      "breakpoints": true
+    }
+  ]
+}

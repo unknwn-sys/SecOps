@@ -1,0 +1,44 @@
+[Unit]
+Description=Offensive Security Portal IoT Red Team Device
+Documentation=file:///opt/offensive-security-portal/README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/offensive-security-portal
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+Environment="HOST=0.0.0.0"
+EnvironmentFile=/opt/offensive-security-portal/.env
+
+# Core startup
+ExecStart=/usr/bin/node /opt/offensive-security-portal/dist/index.js
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Process isolation
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=yes
+
+# Allow UART access (required for /dev/ttyUSB0)
+SupplementaryGroups=dialout
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=offensive-security
+
+# Security
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
