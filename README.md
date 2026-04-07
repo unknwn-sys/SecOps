@@ -43,11 +43,37 @@ pip3 install -r requirements.txt
 
 ## ESP32 Firmware Setup
 
+### Automatic Upload (Recommended for Raspberry Pi Zero 2 W)
+
+The system uses **esptool.py** for automatic firmware flashing:
+
+1. Install dependencies:
+```bash
+pip3 install -r requirements.txt
+```
+
+2. Connect ESP32 via USB to your Raspberry Pi Zero 2 W
+
+3. Use the web interface:
+   - Navigate to Settings → Firmware Upload
+   - Click "Upload ESP32 Firmware"
+   - The script will:
+     - Auto-detect the USB port
+     - Compile the firmware
+     - Flash it using esptool.py
+
+4. Or use the command line:
+```bash
+python3 upload_firmware.py esp32
+```
+
+### Manual Arduino IDE Upload
+
 1. Open `esp32_firmware/esp32_attacks.ino` in Arduino IDE
 2. Select ESP32 board and appropriate COM port
 3. Upload the firmware
 
-The ESP32 will automatically switch to monitor mode when scanning for networks and back to promiscuous mode for attacks.
+**Note:** The ESP32 will automatically switch to monitor mode when scanning for networks and back to promiscuous mode for attacks.
 
 ## RP2040 Firmware Setup
 
@@ -63,6 +89,48 @@ python3 main.py
 
 2. Access the web interface at `http://localhost:5000`
 3. Login with username: `rynex`, password: `rynex`
+
+## Deployment on Raspberry Pi Zero 2 W
+
+### Initial Setup
+
+1. SSH into your Pi:
+```bash
+ssh pi@your-pi-ip
+```
+
+2. Clone and setup:
+```bash
+git clone https://github.com/ben-slates/SecOps.git
+cd SecOps
+pip3 install -r requirements.txt
+```
+
+3. Run the application:
+```bash
+python3 main.py
+# Access at http://<your-pi-ip>:5000
+```
+
+### Auto-Flashing ESP32 Firmware
+
+Once the server is running, you can upload firmware directly from the web interface or command line:
+
+**Web Interface:**
+- Login to SECOPS Portal
+- Go to Settings → Firmware Upload
+- Click "Upload ESP32 Firmware"
+
+**Command Line:**
+```bash
+python3 upload_firmware.py esp32
+```
+
+The script will:
+1. Auto-detect ESP32 USB port
+2. Compile the firmware
+3. Flash using esptool.py (460800 baud rate)
+4. Automatically restart the ESP32
 
 ## API Endpoints
 
