@@ -443,19 +443,19 @@
                         </thead>
                         <tbody id="networksList"></tbody>
                     </table>
-                </div>
-
-                <div class="card">
-                    <div class="card-title"><i class="fas fa-bolt"></i> Attack Controls</div>
-                    <div class="attack-options">
+                                <div class="card">
+                        <div class="card-title"><i class="fas fa-skull"></i> Execute Attack</div>
                         <select id="attackType">
-                            <option value="deauth">Deauthentication Attack</option>
+                            <option value="deauth">Deauth Attack</option>
                             <option value="handshake">Handshake Capture</option>
-                            <option value="eviltwin">Evil Twin Attack</option>
+                            <option value="eviltwin">Evil Twin AP</option>
                         </select>
-                        <button class="btn btn-danger" onclick="executeAttack()">
-                            <i class="fas fa-skull-crossbones"></i> Execute Attack
-                        </button>
+                        <div id="evilTwinConfig" style="display: none;">
+                            <input type="text" id="evilTwinSSID" placeholder="Evil Twin SSID" class="btn">
+                        </div>
+                        <button class="btn btn-danger" onclick="executeAttack()"><i class="fas fa-bolt"></i> Launch Attack</button>
+                        <div id="attackStatus" style="margin-top: 10px; font-size: 12px;"></div>
+                    </div>    </button>
                     </div>
                     <div id="attackStatus"></div>
                 </div>
@@ -715,23 +715,34 @@
             document.getElementById('attackStatus').innerHTML = `Target selected: ${bssid} on channel ${channel}`;
         }
 
+        document.getElementById('attackType').addEventListener('change', function() {
+            const config = document.getElementById('evilTwinConfig');
+            config.style.display = this.value === 'eviltwin' ? 'block' : 'none';
+        });
+
         async function executeAttack() {
-            if (!selectedBSSID) {
+            const attackType = document.getElementById('attackType').value;
+            
+            if (attackType !== 'eviltwin' && !selectedBSSID) {
                 alert('Please select a target network first!');
                 return;
             }
             
-            const attackType = document.getElementById('attackType').value;
+            const body = {
+                type: attackType,
+                bssid: selectedBSSID,
+                channel: selectedChannel
+            };
+
+            if (attackType === 'eviltwin') {
+                body.ssid = document.getElementById('evilTwinSSID').value || 'SecOps_Evil';
+            }
             
             try {
                 const response = await fetch('/api/wifi/attack', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: attackType,
-                        bssid: selectedBSSID,
-                        channel: selectedChannel
-                    })
+                    body: JSON.stringify(body)
                 });
                 
                 const data = await response.json();
