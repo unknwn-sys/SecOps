@@ -15,14 +15,14 @@ from flask import Flask, render_template, request, jsonify, session
 from flask_socketio import SocketIO, emit
 from functools import wraps
 
-# RFID Library (MFRC522)
+# RFID Library (MFRC522) - Disabled for now
 try:
     from mfrc522 import SimpleMFRC522
     import RPi.GPIO as GPIO
     rfid_reader = SimpleMFRC522()
 except ImportError:
     rfid_reader = None
-    print("⚠️ MFRC522 or RPi.GPIO not found. RFID functions will be simulated.")
+    print("⚠️ MFRC522 or RPi.GPIO not found. RFID functions disabled.")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secops_secret_key_2024'
@@ -278,25 +278,32 @@ def get_logs():
         logs = []
     return jsonify({'logs': logs})
 
-@app.route('/api/settings', methods=['GET', 'POST'])
+@app.route('/api/firmware/upload', methods=['POST'])
 @login_required
-def settings():
-    if request.method == 'GET':
-        try:
-            with open(CONFIG_FILE, 'r') as f:
-                config = json.load(f)
-            return jsonify(config)
-        except:
-            return jsonify({'error': 'Failed to load config'}), 500
-    else:
-        new_config = request.json
-        try:
-            with open(CONFIG_FILE, 'w') as f:
-                json.dump(new_config, f, indent=2)
-            log_action('Settings Updated', 'Success', 'Configuration changed')
-            return jsonify({'success': True})
-        except Exception as e:
-            return jsonify({'error': str(e)}), 500
+def upload_firmware():
+    data = request.json
+    target = data.get('target', 'esp32')
+    
+    try:
+        if target == 'esp32':
+            result = subprocess.run([sys.executable, 'upload_firmware.py', 'esp32'], 
+                                  capture_output=True, text=True)
+        elif target == 'rp2040':
+            result = subprocess.run([sys.executable, 'upload_firmware.py', 'rp2040'], 
+                                  capture_output=True, text=True)
+        else:
+            return jsonify({'error': 'Invalid target'}), 400
+        
+        if result.returncode == 0:
+            log_action('Firmware Upload', 'Success', f'Uploaded to {target}')
+            return jsonify({'success': True, 'message': result.stdout})
+        else:
+            log_action('Firmware Upload', 'Failed', result.stderr)
+            return jsonify({'error': result.stderr}), 500
+            
+    except Exception as e:
+        log_action('Firmware Upload', 'Failed', str(e))
+        return jsonify({'error': str(e)}), 500
 
 # WebSocket events
 @socketio.on('connect')

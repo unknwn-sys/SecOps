@@ -1,1 +1,1 @@
-{"esp32":{"baudrate":115200,"port":"/dev/ttyS0"},"rfid":{"protocol":"ISO14443A"},"network":{"channel":6,"tx_power":20,"threads":4},"modules":{"wifi":true,"hid":true,"rfid":true}}
+{"esp32":{"baudrate":115200,"port":"/dev/ttyS0"},"rfid":{"protocol":"ISO14443A","enabled":false},"network":{"channel":6,"tx_power":20,"threads":4},"modules":{"wifi":true,"hid":true,"rfid":false}}

@@ -70,7 +70,15 @@ void loop() {
 
 void process_command(String cmd) {
   if (cmd == "SCAN") {
+    // Switch to station mode for scanning
+    esp_wifi_set_promiscuous(false);
+    WiFi.mode(WIFI_STA);
+    delay(100);
     scan_networks();
+    // Switch back to promiscuous mode
+    WiFi.mode(WIFI_STA);
+    esp_wifi_set_promiscuous(true);
+    esp_wifi_set_promiscuous_rx_cb(promiscuous_cb);
   } 
   else if (cmd.startsWith("DEAUTH")) {
     parse_target(cmd.substring(7));

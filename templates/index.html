@@ -557,6 +557,11 @@
                         <label><input type="checkbox" id="wifiModule" checked> WiFi Module</label><br>
                         <label><input type="checkbox" id="hidModule" checked> HID Module</label><br>
                         <label><input type="checkbox" id="rfidModule" checked> RFID Module</label>
+                    <div class="card">
+                        <div class="card-title"><i class="fas fa-upload"></i> Firmware Upload</div>
+                        <button class="btn" onclick="uploadFirmware('esp32')"><i class="fas fa-microchip"></i> Upload ESP32 Firmware</button>
+                        <button class="btn" onclick="uploadFirmware('rp2040')"><i class="fas fa-keyboard"></i> Upload RP2040 Firmware</button>
+                        <div id="uploadStatus" style="margin-top: 10px;"></div>
                     </div>
                 </div>
                 <button class="btn btn-success" onclick="saveSettings()">Save All Settings</button>
@@ -990,6 +995,29 @@ ENTER`
                     loadLogs();
                 }
             });
+        }
+
+        // Firmware upload
+        async function uploadFirmware(target) {
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.innerHTML = `Uploading ${target} firmware...`;
+            
+            try {
+                const response = await fetch('/api/firmware/upload', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target: target })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    statusDiv.innerHTML = `<span style="color: #00ff41;">${target.toUpperCase()} firmware uploaded successfully!</span>`;
+                } else {
+                    statusDiv.innerHTML = `<span style="color: #ff0000;">Upload failed: ${data.error}</span>`;
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<span style="color: #ff0000;">Upload error: ${error}</span>`;
+            }
         }
 
         function logout() {
